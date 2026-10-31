@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "id": "fthelper",
+  "version": "${version}",
+  "name": "FT Helper",
+  "description": "Бинды предметов, HUD, ESP-стрелки, Freecam и Click GUI (J).",
+  "environment": "client",
+  "entrypoints": {
+    "client": ["dev.fthelper.FTHelper"]
+  },
+  "depends": {
+    "fabricloader": ">=0.16.0",
+    "minecraft": "~1.21.11",
+    "java": ">=21",
+    "fabric-api": "*"
+  }
+}
