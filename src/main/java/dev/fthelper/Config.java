@@ -41,6 +41,7 @@ public class Config {
 
     public boolean seeInvisibles = false; // показывать невидимых игроков
     public int seeInvisKey = NONE;
+    public int invisAlpha = 100; // видимость невидимых игроков, % (30..100)
 
     public boolean espEnabled = false;
     public int espKey = NONE;
@@ -76,6 +77,7 @@ public class Config {
         if (inst.binds == null) inst.binds = new ArrayList<>();
         if (inst.friends == null) inst.friends = new ArrayList<>();
         if (inst.espColor == null) inst.espColor = "#FF3030";
+        inst.invisAlpha = Math.max(30, Math.min(100, inst.invisAlpha));
         save();
     }
 

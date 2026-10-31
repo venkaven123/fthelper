@@ -3,11 +3,16 @@
   "id": "fthelper",
   "version": "${version}",
   "name": "FT Helper",
-  "description": "Бинды предметов, HUD, ESP-стрелки, Freecam и Click GUI (J).",
+  "description": "Бинды предметов, HUD, ESP-стрелки, Freecam, See Invisibles и Click GUI (J).",
   "environment": "client",
   "entrypoints": {
-    "client": ["dev.fthelper.FTHelper"]
+    "client": [
+      "dev.fthelper.FTHelper"
+    ]
   },
+  "mixins": [
+    "fthelper.mixins.json"
+  ],
   "depends": {
     "fabricloader": ">=0.16.0",
     "minecraft": "~1.21.11",

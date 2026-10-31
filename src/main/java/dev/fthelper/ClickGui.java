@@ -16,9 +16,9 @@ import java.util.function.DoubleSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.Supplier;
 
-/** Click GUI (открывается на J): Binds / ESP / Freecam / HUD / Friends. */
+/** Click GUI (открывается на J): Binds / ESP / Freecam / HUD / Friends / Invis. */
 public class ClickGui extends Screen {
-    private static final String[] TABS = {"Binds", "ESP", "Freecam", "HUD", "Friends"};
+    private static final String[] TABS = {"Binds", "ESP", "Freecam", "HUD", "Friends", "Invis"};
     private static int tab = 0;
 
     private IntConsumer listenSetter;
@@ -80,8 +80,6 @@ public class ClickGui extends Screen {
                 color.setText(c.espColor);
                 color.setChangedListener(s -> c.espColor = s);
                 addDrawableChild(color);
-                toggle(left, 196, "See Invisibles", () -> c.seeInvisibles, v -> c.seeInvisibles = v);
-                keyButton(left, 220, 320, () -> Text.literal("Бинд See Invisibles: [" + Keys.name(c.seeInvisKey) + "]"), v -> c.seeInvisKey = v);
             }
             case 2 -> {
                 toggle(left, y, "Freecam", Freecam::isActive, v -> { if (v != Freecam.isActive()) Freecam.toggle(client); }); y += 24;
@@ -93,6 +91,11 @@ public class ClickGui extends Screen {
                 stepper(left, y, "Размер", () -> c.hudScale, v -> c.hudScale = v, 0.1, 0.5, 2.0, "%.1f"); y += 24;
                 stepper(left, y, "Высота над низом", () -> c.hudYOffset, v -> c.hudYOffset = (int) v, 5, 40, 250, "%.0f"); y += 24;
                 keyButton(left, y, 320, () -> Text.literal("Клавиша Click GUI: [" + Keys.name(c.guiKey) + "]"), v -> c.guiKey = v);
+            }
+            case 5 -> {
+                toggle(left, y, "See Invisibles", () -> c.seeInvisibles, v -> c.seeInvisibles = v); y += 24;
+                keyButton(left, y, 320, () -> Text.literal("Бинд See Invisibles: [" + Keys.name(c.seeInvisKey) + "]"), v -> c.seeInvisKey = v); y += 24;
+                stepper(left, y, "Видимость, %", () -> c.invisAlpha, v -> c.invisAlpha = (int) v, 5, 30, 100, "%.0f");
             }
             case 4 -> {
                 TextFieldWidget field = new TextFieldWidget(textRenderer, left, y, 220, 20, Text.literal("Ник"));
