@@ -39,6 +39,9 @@ public class Config {
 
     public boolean returnItem = true; // после использования вернуть предмет на прежнее место
 
+    public boolean seeInvisibles = false; // показывать невидимых игроков
+    public int seeInvisKey = NONE;
+
     public boolean espEnabled = false;
     public int espKey = NONE;
     public int espRadius = 60;        // расстояние стрелок от прицела (px)

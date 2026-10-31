@@ -33,13 +33,16 @@ public class FTHelper implements ClientModInitializer {
         boolean gui = Keys.edge("gui", cfg.guiKey);
         boolean esp = Keys.edge("esp", cfg.espKey);
         boolean fc = Keys.edge("freecam", cfg.freecamKey);
+        boolean si = Keys.edge("seeinvis", cfg.seeInvisKey);
 
         ItemBinds.tick(mc);
+        SeeInvisibles.tick(mc);
 
         if (mc.currentScreen == null) {
             if (gui) mc.setScreen(new ClickGui());
             if (esp) { cfg.espEnabled = !cfg.espEnabled; Config.save(); }
             if (fc) Freecam.toggle(mc);
+            if (si) { cfg.seeInvisibles = !cfg.seeInvisibles; Config.save(); }
         }
     }
 }

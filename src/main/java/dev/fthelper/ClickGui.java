@@ -80,6 +80,8 @@ public class ClickGui extends Screen {
                 color.setText(c.espColor);
                 color.setChangedListener(s -> c.espColor = s);
                 addDrawableChild(color);
+                toggle(left, 196, "See Invisibles", () -> c.seeInvisibles, v -> c.seeInvisibles = v);
+                keyButton(left, 220, 320, () -> Text.literal("Бинд See Invisibles: [" + Keys.name(c.seeInvisKey) + "]"), v -> c.seeInvisKey = v);
             }
             case 2 -> {
                 toggle(left, y, "Freecam", Freecam::isActive, v -> { if (v != Freecam.isActive()) Freecam.toggle(client); }); y += 24;
