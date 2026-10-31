@@ -37,6 +37,8 @@ public class Config {
             new ItemBind("minecraft:sugar", 89)                 // Y
     ));
 
+    public boolean returnItem = true; // после использования вернуть предмет на прежнее место
+
     public boolean espEnabled = false;
     public int espKey = NONE;
     public int espRadius = 60;        // расстояние стрелок от прицела (px)

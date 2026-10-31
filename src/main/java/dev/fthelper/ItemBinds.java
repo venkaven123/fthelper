@@ -14,14 +14,18 @@ import net.minecraft.util.Identifier;
 
 /**
  * Бинд -> открыть инвентарь -> через 4 тика (200 мс) предмет в слот в руке ->
- * закрыть инвентарь -> один ПКМ.
+ * закрыть инвентарь -> один ПКМ -> (если включено returnItem) снова открыть
+ * инвентарь и вернуть предмет на прежнее место.
  */
 public class ItemBinds {
     private static final int DELAY_TICKS = 4; // 200 мс
+    private static final int RETURN_WAIT_TICKS = 2; // пауза между ПКМ и возвратом
 
-    private static int state = 0; // 0 ожидание, 1 ждём перенос, 2 ждём ПКМ
+    // 0 ожидание, 1 ждём перенос, 2 ждём ПКМ, 3 ждём перед возвратом, 4 ждём возврат
+    private static int state = 0;
     private static int timer;
     private static int heldSlot;
+    private static int returnSlot = -1; // слот окна инвентаря, откуда взяли предмет
     private static Item item = Items.AIR;
 
     public static String status = "";
@@ -45,6 +49,7 @@ public class ItemBinds {
 
     public static void reset() {
         state = 0;
+        returnSlot = -1;
     }
 
     private static void setStatus(String s) {
@@ -70,13 +75,36 @@ public class ItemBinds {
             if (--timer <= 0) transfer(mc);
         } else if (state == 2) {
             if (--timer <= 0) {
+                boolean used = false;
                 if (mc.currentScreen == null && mc.interactionManager != null) {
                     mc.interactionManager.interactItem(mc.player, Hand.MAIN_HAND);
                     mc.player.swingHand(Hand.MAIN_HAND);
                     setStatus("Выполнено");
+                    used = true;
                 }
-                state = 0;
+                if (used && cfg.returnItem && returnSlot != -1) {
+                    state = 3;
+                    timer = RETURN_WAIT_TICKS;
+                } else {
+                    state = 0;
+                    returnSlot = -1;
+                }
             }
+        } else if (state == 3) {
+            if (mc.currentScreen != null) return; // ждём, пока закроется чужое окно
+            if (--timer <= 0) {
+                mc.setScreen(new InventoryScreen(mc.player));
+                timer = DELAY_TICKS;
+                state = 4;
+            }
+        } else if (state == 4) {
+            if (!(mc.currentScreen instanceof InventoryScreen)) {
+                state = 0;
+                returnSlot = -1;
+                setStatus("Возврат отменён");
+                return;
+            }
+            if (--timer <= 0) giveBack(mc);
         }
     }
 
@@ -88,6 +116,7 @@ public class ItemBinds {
             return;
         }
         item = it;
+        returnSlot = -1;
         heldSlot = mc.player.getInventory().getSelectedSlot();
         mc.setScreen(new InventoryScreen(mc.player));
         timer = DELAY_TICKS;
@@ -115,10 +144,29 @@ public class ItemBinds {
             }
             // SWAP: меняем найденный слот со слотом хотбара (button = номер слота хотбара)
             mc.interactionManager.clickSlot(h.syncId, found, heldSlot, SlotActionType.SWAP, mc.player);
+            returnSlot = found;
         }
 
         mc.player.closeHandledScreen();
         state = 2;
         timer = 1;
+    }
+
+    /** Повторный SWAP тех же слотов возвращает всё как было. */
+    private static void giveBack(MinecraftClient mc) {
+        ScreenHandler h = mc.player.playerScreenHandler;
+        ItemStack inHand = h.slots.get(36 + heldSlot).getStack();
+
+        // защита: в слоте должен лежать наш предмет (или пусто, если стак израсходован)
+        if (returnSlot != -1 && (inHand.isOf(item) || inHand.isEmpty())) {
+            mc.interactionManager.clickSlot(h.syncId, returnSlot, heldSlot, SlotActionType.SWAP, mc.player);
+            setStatus("Возвращено");
+        } else {
+            setStatus("Возврат отменён");
+        }
+
+        mc.player.closeHandledScreen();
+        state = 0;
+        returnSlot = -1;
     }
 }
