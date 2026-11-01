@@ -10,6 +10,8 @@ public class FTHelper implements ClientModInitializer {
     public void onInitializeClient() {
         Config.load();
 
+        // ItemBinds раньше Freecam, чтобы Freecam всегда имел приоритет над клавишами
+        ClientTickEvents.START_CLIENT_TICK.register(ItemBinds::startTick);
         ClientTickEvents.START_CLIENT_TICK.register(Freecam::startTick);
         ClientTickEvents.END_CLIENT_TICK.register(FTHelper::tick);
 

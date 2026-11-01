@@ -37,6 +37,7 @@ public class Config {
             new ItemBind("minecraft:sugar", 89)                 // Y
     ));
 
+    public boolean freezeWhileUsing = true; // останавливать движение, пока используется предмет
     public boolean returnItem = true; // после использования вернуть предмет на прежнее место
 
     public boolean seeInvisibles = false; // показывать невидимых игроков

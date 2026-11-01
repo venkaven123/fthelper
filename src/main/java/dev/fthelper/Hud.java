@@ -5,6 +5,7 @@ import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.text.Text;
 import org.joml.Matrix3x2fStack;
 
 /** Горизонтальный ряд ячеек над хотбаром: клавиша, иконка, количество. */
@@ -36,19 +37,19 @@ public class Hud {
 
             ctx.fill(x, y0, x + cw, y0 + ch, count > 0 ? 0x99000000 : 0x99303030);
 
-            ctx.drawCenteredTextWithShadow(tr, Keys.name(b.key), x + cw / 2, y0 + 2,
+            ctx.drawCenteredTextWithShadow(tr, Fonts.t(Keys.name(b.key)), x + cw / 2, y0 + 2,
                     count > 0 ? 0xFFDDDDDD : 0xFF777777);
 
             ctx.drawItem(new ItemStack(item), x + 10, y0 + 11);
             if (count <= 0) ctx.fill(x + 10, y0 + 11, x + 26, y0 + 27, 0xAA303030);
 
-            String cs = String.valueOf(count);
+            Text cs = Fonts.t(String.valueOf(count));
             ctx.drawTextWithShadow(tr, cs, x + cw - 2 - tr.getWidth(cs), y0 + 20,
                     count > 0 ? 0xFFFFFFFF : 0xFFFF5555);
         }
 
         if (!ItemBinds.status.isEmpty() && System.currentTimeMillis() - ItemBinds.statusTime < 2000) {
-            ctx.drawCenteredTextWithShadow(tr, ItemBinds.status, 0, y0 - 11, 0xFFFFFF55);
+            ctx.drawCenteredTextWithShadow(tr, Fonts.t(ItemBinds.status), 0, y0 - 11, 0xFFFFFF55);
         }
 
         m.popMatrix();

@@ -46,7 +46,7 @@ public class Esp {
             }
             m.popMatrix();
 
-            String d = (int) dist + "m";
+            net.minecraft.text.Text d = Fonts.t((int) dist + "m");
             int tw = mc.textRenderer.getWidth(d);
             ctx.drawTextWithShadow(mc.textRenderer, d,
                     (int) (px + ax * 14 - tw / 2f), (int) (py + ay * 14 - 4), color);
