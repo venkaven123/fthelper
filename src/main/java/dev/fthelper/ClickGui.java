@@ -3,6 +3,7 @@ package dev.fthelper;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.client.gui.widget.ClickableWidget;
 import net.minecraft.client.gui.widget.TextFieldWidget;
 import net.minecraft.item.ItemStack;
@@ -10,96 +11,50 @@ import net.minecraft.text.Text;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 import java.util.function.BooleanSupplier;
 import java.util.function.DoubleConsumer;
 import java.util.function.DoubleSupplier;
 import java.util.function.IntConsumer;
 import java.util.function.IntSupplier;
 
-/** Полностью кастомный Click GUI в стиле референса. */
+/** Click GUI (открывается на J): карточки модулей слева, настройки выбранного модуля справа. */
 public class ClickGui extends Screen {
-    // Палитра (взята с референса)
-    private static final int DIM = 0x99000000;
-    private static final int PANEL_BG = 0xFF16161A;
-    private static final int PANEL_BORDER = 0xFF2A2A30;
-    private static final int HEADER_BG = 0xFF1E1E24;
-    private static final int CARD_BG = 0xFF1F1F24;
-    private static final int CARD_HOVER = 0xFF2A2A32;
-    private static final int CARD_ON = 0xFF25252D;
+    // палитра
+    private static final int DIM = 0xA0070810;
+    private static final int PANEL = 0xF00E1017;
+    private static final int BORDER = 0x30FFFFFF;
+    private static final int CARD = 0xFF151822;
+    private static final int CARD_HOVER = 0xFF1B1F2C;
+    private static final int CARD_SEL = 0xFF1E2336;
+    private static final int ROW = 0xFF141721;
+    private static final int ROW_HOVER = 0xFF1A1E2B;
     private static final int ACCENT = 0xFF7C86F0;
-    private static final int TOGGLE_ON = 0xFF7C86F0;
-    private static final int TOGGLE_OFF = 0xFF3C3C46;
-    private static final int TEXT = 0xFFE8E8F0;
-    private static final int DIM_TEXT = 0xFF7C7C88;
+    private static final int ACCENT_DIM = 0x667C86F0;
+    private static final int TEXT = 0xFFEDEFFF;
+    private static final int DIMTEXT = 0xFF7D8294;
+    private static final int OFF = 0xFF2B2F3D;
     private static final int WHITE = 0xFFFFFFFF;
 
-    // Категории и модули
-    private enum Category {
-        MISC("Misc", "Предметы и прочее"),
-        MOVEMENT("Movement", "Движение"),
-        COMBAT("Combat", "Бой"),
-        RENDER("Render", "Визуал"),
-        PLAYER("Player", "Игрок");
-
-        final String title;
-        final String desc;
-
-        Category(String title, String desc) {
-            this.title = title;
-            this.desc = desc;
-        }
-    }
-
     private enum Mod {
-        // MISC
-        AUCTION_ASSIST("AuctionAssist", "Помогает быстро делать покупки на аукционе.", Category.MISC),
-        AUTO_ACCEPT("AutoAccept", "Автоматически принимает входящие приглашения.", Category.MISC),
-        AUTO_CLEAR("AutoClear", "Убирает упавший мусор с земли.", Category.MISC),
-        AUTO_FISH("AutoFish", "Автоматически кликает и тянет удочку.", Category.MISC),
-        AUTO_SETUP("AutoSetup", "Меняет настройки мода под другие.", Category.MISC),
-        CHEST_STEALER("ChestStealer", "Быстро забирает предметы из сундуков.", Category.MISC),
-        CHAT_MACROS("ChatMacros", "Автоматические сообщения в чат.", Category.MISC),
-        CLEANER_EXP("CleanerEXP", "Удаляет опыт с земли.", Category.MISC),
-        DISABLER("Disabler", "Обходит проверки анти-чита.", Category.MISC),
-        FANCY_CHAT("FancyChat", "Кастомизирует внешний вид чата.", Category.MISC),
-        FARM_BOT("FarmBot", "Автоматически сажает и собирает урожай.", Category.MISC),
-        FOLLOW_BOT("FollowBot", "Следует за игроком.", Category.MISC),
-        GUILD_CHAT("GuildChat", "Быстрый чат для гильдии.", Category.MISC),
-
-        // MOVEMENT (добавляем для визуала)
-        SPRINT("Sprint", "Постоянный бег.", Category.MOVEMENT),
-        FLY("Fly", "Позволяет летать.", Category.MOVEMENT),
-        NO_FALL("NoFall", "Отключает урон от падения.", Category.MOVEMENT),
-
-        // RENDER (наши модули)
-        ESP("ESP", "Стрелки к игрокам.", Category.RENDER),
-        FREECAM("Freecam", "Свободная камера.", Category.RENDER),
-        INVIS("See Invisibles", "Видеть невидимых.", Category.RENDER),
-        HUD("HUD", "Ячейки над хотбаром.", Category.RENDER),
-
-        // PLAYER (наши модули)
-        BINDS("Бинды предметов", "Предмет по клавише.", Category.PLAYER),
-        FRIENDS("Друзья", "Список для ESP.", Category.PLAYER);
+        BINDS("Бинды предметов", "Предмет по клавише"),
+        ESP("ESP", "Стрелки к игрокам"),
+        FREECAM("Freecam", "Свободная камера"),
+        INVIS("See Invisibles", "Видеть невидимых"),
+        HUD("HUD", "Ячейки над хотбаром"),
+        FRIENDS("Друзья", "Список для ESP");
 
         final String title;
         final String desc;
-        final Category category;
 
-        Mod(String title, String desc, Category category) {
+        Mod(String title, String desc) {
             this.title = title;
             this.desc = desc;
-            this.category = category;
         }
 
         boolean hasToggle() {
-            return switch (this) {
-                case ESP, FREECAM, INVIS, HUD, SPRINT, FLY, NO_FALL, AUTO_FISH, CHEST_STEALER, FARM_BOT, CLEANER_EXP, DISABLER -> true;
-                default -> false;
-            };
+            return this == ESP || this == FREECAM || this == INVIS || this == HUD;
         }
     }
 
@@ -107,28 +62,16 @@ public class ClickGui extends Screen {
         void paint(DrawContext g, Flat f, boolean hovered);
     }
 
-    private static Category selectedCategory = Category.MISC;
-    private static Mod selectedMod = Mod.CHEST_STEALER;
-    
-    // Состояние для визуальных тумблеров
-    private static final Map<Mod, Boolean> toggles = new HashMap<>();
+    private static Mod selected = Mod.BINDS;
 
     private final List<ClickableWidget> widgets = new ArrayList<>();
     private IntConsumer listenSetter;
     private ClickableWidget listenBtn;
 
-    // Геометрия основного окна
     private int mainX, mainY, mainW, mainH;
-    
-    // Геометрия панели настроек
-    private int setX, setY, setW, setH;
-    
-    // Геометрия панели бота (FightBot/Keybind)
-    private int botX, botY, botW, botH;
-    private TextFieldWidget keybindField;
-    
-    // Позиции для скролла (заглушка)
-    private int scrollOffset = 0;
+    private int setX, setY, setH;
+    private final int setW = 210;
+    private boolean showMain, showSettings;
 
     public ClickGui() {
         super(Text.literal("FT Helper"));
@@ -145,10 +88,10 @@ public class ClickGui extends Screen {
 
     @Override
     public void renderBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // Фон не нужен, рисуем в render
+        // свой фон рисуется в render()
     }
 
-    // ───────────────────────── Утилиты рисования ─────────────────────────
+    // ───────────────────────── рисование ─────────────────────────
 
     private static void rr(DrawContext g, int x, int y, int w, int h, int r, int color) {
         r = Math.max(0, Math.min(r, Math.min(w, h) / 2));
@@ -161,9 +104,14 @@ public class ClickGui extends Screen {
         }
     }
 
-    private static void border(DrawContext g, int x, int y, int w, int h, int r, int color) {
-        rr(g, x, y, w, h, r, color);
-        rr(g, x + 1, y + 1, w - 2, h - 2, r - 1, PANEL_BG);
+    private static void panel(DrawContext g, int x, int y, int w, int h) {
+        rr(g, x - 1, y - 1, w + 2, h + 2, 6, BORDER);
+        rr(g, x, y, w, h, 6, PANEL);
+    }
+
+    private static void pill(DrawContext g, int x, int y, boolean on) {
+        rr(g, x, y, 22, 11, 5, on ? ACCENT : OFF);
+        rr(g, on ? x + 12 : x + 2, y + 2, 7, 7, 3, WHITE);
     }
 
     private int tw(String s) {
@@ -180,40 +128,32 @@ public class ClickGui extends Screen {
         return s + "..";
     }
 
-    private void drawCheckbox(DrawContext g, int x, int y, boolean checked) {
-        rr(g, x, y, 10, 10, 2, checked ? ACCENT : TOGGLE_OFF);
-        if (checked) {
-            rr(g, x + 2, y + 2, 6, 6, 1, WHITE);
-        }
-    }
+    // ───────────────────────── виджеты ─────────────────────────
 
-    // ───────────────────────── Виджеты ─────────────────────────
-
-    private class Flat extends ClickableWidget {
+    /**
+     * Кнопка с собственной отрисовкой.
+     * В 1.21.11 ButtonWidget абстрактный, renderWidget у него final, а внутри есть свой класс Text,
+     * поэтому Text здесь пишем полным именем, фон гасим через setAlpha(0), а рисуем в drawIcon.
+     */
+    private class Flat extends ButtonWidget {
         private final Painter painter;
         int lastMouseX;
 
         Flat(int x, int y, int w, int h, PressAction action, Painter painter) {
-            super(x, y, w, h, Text.empty());
+            super(x, y, w, h, net.minecraft.text.Text.empty(), action, s -> s.get());
             this.painter = painter;
-            this.active = true;
-            this.visible = true;
-            this.setOnClick(action); // В 1.21.11 используется setOnClick
+            setAlpha(0f); // стандартный фон кнопки становится невидимым, рисуем свой
         }
 
         @Override
-        public void renderWidget(DrawContext g, int mouseX, int mouseY, float delta) {
+        public void drawIcon(DrawContext g, int mouseX, int mouseY, float delta) {
             lastMouseX = mouseX;
             painter.paint(g, this, isHovered());
         }
     }
 
-    // Заглушка PressAction, если в твоей версии её нет
-    private interface PressAction {
-        void onPress(Flat b);
-    }
-
-    private class SliderW extends ClickableWidget {
+    /** Ползунок: тянется мышью, значение считается по позиции курсора. */
+    private class SliderW extends ButtonWidget {
         private final String label;
         private final String fmt;
         private final DoubleSupplier get;
@@ -224,7 +164,7 @@ public class ClickGui extends Screen {
 
         SliderW(int x, int y, int w, int h, String label, DoubleSupplier get, DoubleConsumer set,
                 double min, double max, double step, String fmt) {
-            super(x, y, w, h, Text.empty());
+            super(x, y, w, h, net.minecraft.text.Text.empty(), b -> ((SliderW) b).begin(), s -> s.get());
             this.label = label;
             this.get = get;
             this.set = set;
@@ -232,9 +172,7 @@ public class ClickGui extends Screen {
             this.max = max;
             this.step = step;
             this.fmt = fmt;
-            this.active = true;
-            this.visible = true;
-            this.setOnClick(b -> ((SliderW) b).begin());
+            setAlpha(0f); // стандартный фон кнопки становится невидимым, рисуем свой
         }
 
         void begin() {
@@ -254,7 +192,7 @@ public class ClickGui extends Screen {
         }
 
         @Override
-        public void renderWidget(DrawContext g, int mouseX, int mouseY, float delta) {
+        public void drawIcon(DrawContext g, int mouseX, int mouseY, float delta) {
             lastMouseX = mouseX;
             if (dragging) {
                 long h = MinecraftClient.getInstance().getWindow().getHandle();
@@ -266,17 +204,17 @@ public class ClickGui extends Screen {
                 }
             }
             int x = getX(), y = getY(), w = getWidth();
-            rr(g, x, y, w, getHeight(), 3, isHovered() || dragging ? CARD_HOVER : CARD_BG);
+            rr(g, x, y, w, getHeight(), 3, (isHovered() || dragging) ? ROW_HOVER : ROW);
 
             double value = get.getAsDouble();
             String vs = String.format(Locale.ROOT, fmt, value);
             txt(g, label, x + 8, y + 5, TEXT);
-            txt(g, vs, x + w - 8 - tw(vs), y + 5, DIM_TEXT);
+            txt(g, vs, x + w - 8 - tw(vs), y + 5, DIMTEXT);
 
             double t = Math.max(0, Math.min(1, (value - min) / (max - min)));
             int trackW = w - 16;
             int filled = (int) Math.round(trackW * t);
-            rr(g, x + 8, y + 19, trackW, 3, 1, TOGGLE_OFF);
+            rr(g, x + 8, y + 19, trackW, 3, 1, OFF);
             rr(g, x + 8, y + 19, Math.max(3, filled), 3, 1, ACCENT);
             rr(g, x + 8 + filled - 3, y + 17, 7, 7, 3, WHITE);
         }
@@ -288,15 +226,13 @@ public class ClickGui extends Screen {
         return w;
     }
 
-    // ───────────────────────── Логика модулей ─────────────────────────
-
     private boolean modOn(Mod m, Config c) {
         return switch (m) {
             case ESP -> c.espEnabled;
             case FREECAM -> Freecam.isActive();
             case INVIS -> c.seeInvisibles;
             case HUD -> c.hudEnabled;
-            default -> toggles.getOrDefault(m, false);
+            default -> false;
         };
     }
 
@@ -306,166 +242,81 @@ public class ClickGui extends Screen {
             case FREECAM -> Freecam.toggle(client);
             case INVIS -> c.seeInvisibles = !c.seeInvisibles;
             case HUD -> c.hudEnabled = !c.hudEnabled;
-            default -> toggles.put(m, !toggles.getOrDefault(m, false));
+            default -> { }
         }
         Config.save();
     }
 
-    // ───────────────────────── Инициализация и раскладка ─────────────────────────
+    // ───────────────────────── раскладка ─────────────────────────
 
     @Override
     protected void init() {
         widgets.clear();
         Config c = Config.get();
 
-        final int pad = 8, headerH = 26;
-        final int cardW = 130, cardH = 44, gap = 6;
-        
-        // Основная панель
-        mainW = pad * 2 + cardW * 3 + gap * 2;
-        mainH = headerH + 4 * cardH + 3 * gap + pad; // 4 ряда карточек
-        mainX = width / 2 - mainW / 2 - 30;
-        mainY = height / 2 - mainH / 2;
+        final int pad = 8, cardW = 140, cardH = 44, gap = 6, headerH = 28, rows = 3, panelGap = 10;
+        mainW = pad * 2 + cardW * 2 + gap;
+        mainH = headerH + rows * cardH + (rows - 1) * gap + pad;
 
-        // Панель настроек (справа)
-        setW = 220;
-        setX = mainX + mainW + 16;
-        setY = mainY - 20;
-        
-        // Панель бота (слева снизу)
-        botW = 200;
-        botH = 80;
-        botX = mainX - botW - 16;
-        botY = mainY + mainH - botH;
+        boolean narrow = width < mainW + panelGap + setW + 12;
+        showSettings = selected != null;
+        showMain = !(narrow && showSettings);
 
-        // Если экран узкий, прячем боковые панели
-        boolean narrow = width < mainW + setW + botW + 64;
-        if (narrow) {
-            setX = mainX + mainW + 8;
-            botX = mainX - botW - 8;
+        int total = (showMain ? mainW : 0) + (showSettings ? (showMain ? panelGap : 0) + setW : 0);
+        mainX = (width - total) / 2;
+        mainY = Math.max(6, (height - mainH) / 2 - 10);
+        setX = showMain ? mainX + mainW + panelGap : mainX;
+        setY = mainY;
+
+        if (showMain) {
+            Mod[] mods = Mod.values();
+            for (int i = 0; i < mods.length; i++) {
+                final Mod m = mods[i];
+                int cx = mainX + pad + (i % 2) * (cardW + gap);
+                int cy = mainY + headerH + (i / 2) * (cardH + gap);
+                add(new Flat(cx, cy, cardW, cardH, b -> {
+                    Flat f = (Flat) b;
+                    if (m.hasToggle() && f.lastMouseX >= f.getX() + f.getWidth() - 36) {
+                        flip(m, c);
+                    } else {
+                        selected = m;
+                        listenSetter = null;
+                        listenBtn = null;
+                        clearAndInit();
+                    }
+                }, (g, f, hov) -> {
+                    int x = f.getX(), y = f.getY(), w = f.getWidth(), h = f.getHeight();
+                    boolean sel = selected == m;
+                    if (sel) rr(g, x - 1, y - 1, w + 2, h + 2, 5, ACCENT_DIM);
+                    rr(g, x, y, w, h, 4, sel ? CARD_SEL : (hov ? CARD_HOVER : CARD));
+                    int textW = w - 16 - (m.hasToggle() ? 30 : 0);
+                    txt(g, fit(m.title, textW), x + 8, y + 9, TEXT);
+                    txt(g, fit(m.desc, w - 16), x + 8, y + 26, DIMTEXT);
+                    if (m.hasToggle()) pill(g, x + w - 30, y + 8, modOn(m, c));
+                }));
+            }
         }
 
-        // --- Рисуем карточки модулей ---
-        Mod[] mods = Mod.values();
-        List<Mod> filtered = new ArrayList<>();
-        for (Mod m : mods) {
-            if (m.category == selectedCategory) filtered.add(m);
-        }
-
-        int i = 0;
-        for (Mod m : filtered) {
-            int cx = mainX + pad + (i % 3) * (cardW + gap);
-            int cy = mainY + headerH + (i / 3) * (cardH + gap);
-            
-            if (cy + cardH > mainY + mainH) break; // не влезает
-
-            add(new Flat(cx, cy, cardW, cardH, b -> {
-                Flat f = (Flat) b;
-                if (m.hasToggle() && f.lastMouseX >= f.getX() + f.getWidth() - 36) {
-                    flip(m, c);
-                } else {
-                    selectedMod = m;
-                    clearAndInit();
-                }
-            }, (g, f, hov) -> {
-                int x = f.getX(), y = f.getY(), w = f.getWidth(), h = f.getHeight();
-                boolean sel = selectedMod == m;
-                rr(g, x, y, w, h, 4, sel ? CARD_ON : (hov ? CARD_HOVER : CARD_BG));
-                
-                // Иконка (заглушка)
-                rr(g, x + 6, y + 6, 10, 10, 2, ACCENT);
-                
-                int textW = w - 16 - (m.hasToggle() ? 30 : 0);
-                txt(g, fit(m.title, textW), x + 20, y + 6, TEXT);
-                txt(g, fit(m.desc, w - 12), x + 6, y + 22, DIM_TEXT);
-                
-                if (m.hasToggle()) {
-                    // Тумблер
-                    boolean on = modOn(m, c);
-                    rr(g, x + w - 26, y + 6, 20, 10, 5, on ? TOGGLE_ON : TOGGLE_OFF);
-                    rr(g, on ? x + w - 15 : x + w - 24, y + 8, 6, 6, 3, WHITE);
-                }
-            }));
-            i++;
-        }
-
-        // --- Панель настроек выбранного модуля ---
-        if (selectedMod != null) {
-            buildSettingsPanel(c, selectedMod);
-        }
-
-        // --- Панель FightBot (левая нижняя) ---
-        buildBotPanel(c);
+        if (showSettings) buildSettings(c, pad);
     }
 
-    private void buildSettingsPanel(Config c, Mod m) {
-        int pad = 8;
+    private void buildSettings(Config c, int pad) {
         int x = setX + pad;
         int w = setW - pad * 2;
         int y = setY + 30;
 
-        // Закрыть панель
-        add(new Flat(setX + setW - 20, setY + 6, 14, 14, b -> {
-            selectedMod = null;
+        // закрыть панель настроек
+        add(new Flat(setX + setW - pad - 14, setY + 7, 14, 14, b -> {
+            selected = null;
+            listenSetter = null;
+            listenBtn = null;
             clearAndInit();
         }, (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), 14, 14, 3, hov ? TOGGLE_OFF : HEADER_BG);
-            txt(g, "x", f.getX() + 7 - tw("x") / 2, f.getY() + 3, hov ? WHITE : DIM_TEXT);
+            rr(g, f.getX(), f.getY(), 14, 14, 3, hov ? OFF : ROW);
+            txt(g, "x", f.getX() + 7 - tw("x") / 2, f.getY() + 3, hov ? WHITE : DIMTEXT);
         }));
 
-        // Заголовок
-        txt(setX + pad, setY + 10, m.title, TEXT); // Рисуем прямо в render
-
-        switch (m) {
-            case CHEST_STEALER -> {
-                // Чекбоксы и ползунок как на референсе
-                addCheckboxRow(x, y, w, "Auto Close", () -> toggles.getOrDefault(Mod.CHEST_STEALER, false), 
-                    () -> toggles.put(Mod.CHEST_STEALER, !toggles.getOrDefault(Mod.CHEST_STEALER, false))); 
-                y += 18;
-                addCheckboxRow(x, y, w, "Title Check", () -> true, () -> {}); 
-                y += 18;
-                add(new SliderW(x, y, w, 28, "Steal Delay", () -> 0.5, v -> {}, 0.1, 2.0, 0.1, "%.1f")); 
-                y += 32;
-                
-                // Item Filter
-                txt(g, "Item Filter", x, y, DIM_TEXT);
-                txt(g, "2/6", x + w - tw("2/6"), y, DIM_TEXT);
-                y += 14;
-                
-                addCheckboxRow(x, y, w, "Blocks", () -> true, () -> {});
-                y += 18;
-                addCheckboxRow(x, y, w, "Food", () -> true, () -> {});
-                y += 18;
-                addCheckboxRow(x, y, w, "Weapon", () -> true, () -> {});
-                y += 18;
-                
-                // Item Name
-                txt(g, "Item Name", x, y, DIM_TEXT);
-                y += 14;
-                TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, w, 20, Text.literal("ItemName"));
-                field.setMaxLength(32);
-                field.setText("Totem of Undying");
-                add(field);
-                y += 24;
-            }
-            case ESP -> {
-                keyRow(x, y, w, "Бинд ESP", () -> c.espKey, v -> c.espKey = v, null); y += 22;
-                add(new SliderW(x, y, w, 28, "Расстояние от прицела", () -> c.espRadius, v -> c.espRadius = (int) Math.round(v), 10, 200, 5, "%.0f")); y += 32;
-                add(new SliderW(x, y, w, 28, "Макс. дистанция", () -> c.espMaxDistance, v -> c.espMaxDistance = (int) Math.round(v), 10, 1000, 10, "%.0f")); y += 32;
-            }
-            case FREECAM -> {
-                keyRow(x, y, w, "Бинд Freecam", () -> c.freecamKey, v -> c.freecamKey = v, null); y += 22;
-                add(new SliderW(x, y, w, 28, "Скорость", () -> c.freecamSpeed, v -> c.freecamSpeed = v, 0.1, 10, 0.1, "%.1f")); y += 32;
-            }
-            case INVIS -> {
-                keyRow(x, y, w, "Бинд See Invisibles", () -> c.seeInvisKey, v -> c.seeInvisKey = v, null); y += 22;
-                add(new SliderW(x, y, w, 28, "Видимость", () -> c.invisAlpha, v -> c.invisAlpha = (int) Math.round(v), 30, 100, 5, "%.0f%%")); y += 32;
-            }
-            case HUD -> {
-                add(new SliderW(x, y, w, 28, "Размер", () -> c.hudScale, v -> c.hudScale = v, 0.5, 2.0, 0.1, "%.1f")); y += 32;
-                add(new SliderW(x, y, w, 28, "Высота над низом", () -> c.hudYOffset, v -> c.hudYOffset = (int) Math.round(v), 40, 250, 5, "%.0f")); y += 32;
-                keyRow(x, y, w, "Клавиша Click GUI", () -> c.guiKey, v -> c.guiKey = v, null); y += 22;
-            }
+        switch (selected) {
             case BINDS -> {
                 for (Config.ItemBind b : c.binds) {
                     ItemStack icon = new ItemStack(ItemBinds.item(b.item));
@@ -473,8 +324,50 @@ public class ClickGui extends Screen {
                     y += 22;
                 }
                 y += 4;
-                toggleRow(x, y, w, "Стоп при использовании", () -> c.freezeWhileUsing, () -> { c.freezeWhileUsing = !c.freezeWhileUsing; Config.save(); }); y += 22;
-                toggleRow(x, y, w, "Возврат предмета", () -> c.returnItem, () -> { c.returnItem = !c.returnItem; Config.save(); }); y += 22;
+                toggleRow(x, y, w, "Стоп при использовании", () -> c.freezeWhileUsing,
+                        () -> { c.freezeWhileUsing = !c.freezeWhileUsing; Config.save(); });
+                y += 22;
+                toggleRow(x, y, w, "Возврат предмета", () -> c.returnItem,
+                        () -> { c.returnItem = !c.returnItem; Config.save(); });
+                y += 22;
+            }
+            case ESP -> {
+                keyRow(x, y, w, "Бинд ESP", () -> c.espKey, v -> c.espKey = v, null); y += 22;
+                add(new SliderW(x, y, w, 28, "Расстояние от прицела", () -> c.espRadius,
+                        v -> c.espRadius = (int) Math.round(v), 10, 200, 5, "%.0f")); y += 32;
+                add(new SliderW(x, y, w, 28, "Макс. дистанция", () -> c.espMaxDistance,
+                        v -> c.espMaxDistance = (int) Math.round(v), 10, 1000, 10, "%.0f")); y += 32;
+
+                // цвет: подпись, образец и поле HEX
+                add(new Flat(x, y, w - 94, 20, b -> { }, (g, f, hov) -> {
+                    rr(g, f.getX(), f.getY(), f.getWidth(), 20, 3, ROW);
+                    txt(g, "Цвет ESP", f.getX() + 8, f.getY() + 6, TEXT);
+                    rr(g, f.getX() + f.getWidth() - 20, f.getY() + 4, 12, 12, 3, Config.get().espColorArgb());
+                }));
+                TextFieldWidget color = new TextFieldWidget(textRenderer, x + w - 90, y, 90, 20, Text.literal("Цвет"));
+                color.setMaxLength(7);
+                color.setText(c.espColor);
+                color.setChangedListener(s -> c.espColor = s);
+                add(color);
+                y += 24;
+                note(x, y, w, "Друзья всегда зелёные"); y += 16;
+            }
+            case FREECAM -> {
+                keyRow(x, y, w, "Бинд Freecam", () -> c.freecamKey, v -> c.freecamKey = v, null); y += 22;
+                add(new SliderW(x, y, w, 28, "Скорость", () -> c.freecamSpeed,
+                        v -> c.freecamSpeed = v, 0.1, 10, 0.1, "%.1f")); y += 32;
+            }
+            case INVIS -> {
+                keyRow(x, y, w, "Бинд See Invisibles", () -> c.seeInvisKey, v -> c.seeInvisKey = v, null); y += 22;
+                add(new SliderW(x, y, w, 28, "Видимость", () -> c.invisAlpha,
+                        v -> c.invisAlpha = (int) Math.round(v), 30, 100, 5, "%.0f%%")); y += 32;
+            }
+            case HUD -> {
+                add(new SliderW(x, y, w, 28, "Размер", () -> c.hudScale,
+                        v -> c.hudScale = v, 0.5, 2.0, 0.1, "%.1f")); y += 32;
+                add(new SliderW(x, y, w, 28, "Высота над низом", () -> c.hudYOffset,
+                        v -> c.hudYOffset = (int) Math.round(v), 40, 250, 5, "%.0f")); y += 32;
+                keyRow(x, y, w, "Клавиша Click GUI", () -> c.guiKey, v -> c.guiKey = v, null); y += 22;
             }
             case FRIENDS -> {
                 TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, w - 70, 20, Text.literal("Ник"));
@@ -498,7 +391,7 @@ public class ClickGui extends Screen {
                 for (String name : c.friends) {
                     if (shown++ >= 8) break;
                     add(new Flat(x, y, w - 24, 20, b -> { }, (g, f, hov) -> {
-                        rr(g, f.getX(), f.getY(), f.getWidth(), 20, 3, CARD_BG);
+                        rr(g, f.getX(), f.getY(), f.getWidth(), 20, 3, ROW);
                         txt(g, fit(name, f.getWidth() - 16), f.getX() + 8, f.getY() + 6, TEXT);
                     }));
                     add(new Flat(x + w - 20, y, 20, 20, b -> {
@@ -506,64 +399,22 @@ public class ClickGui extends Screen {
                         Config.save();
                         clearAndInit();
                     }, (g, f, hov) -> {
-                        rr(g, f.getX(), f.getY(), 20, 20, 3, hov ? 0xFF5A2B33 : CARD_BG);
-                        txt(g, "x", f.getX() + 10 - tw("x") / 2, f.getY() + 6, hov ? WHITE : DIM_TEXT);
+                        rr(g, f.getX(), f.getY(), 20, 20, 3, hov ? 0xFF5A2B33 : ROW);
+                        txt(g, "x", f.getX() + 10 - tw("x") / 2, f.getY() + 6, hov ? WHITE : DIMTEXT);
                     }));
                     y += 22;
                 }
             }
-            default -> {
-                // Заглушка для остальных модулей
-                txt(g, "Нет настроек", x, y, DIM_TEXT);
-            }
         }
 
-        setH = (y - setY) + 8;
-    }
-
-    private void buildBotPanel(Config c) {
-        int pad = 8;
-        int x = botX + pad;
-        int w = botW - pad * 2;
-        int y = botY + 28;
-
-        add(new Flat(botX + botW - 20, botY + 6, 14, 14, b -> {}, (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), 14, 14, 3, hov ? TOGGLE_OFF : HEADER_BG);
-            txt(g, "x", f.getX() + 7 - tw("x") / 2, f.getY() + 3, hov ? WHITE : DIM_TEXT);
-        }));
-
-        txt(g, "FightBot", botX + pad, botY + 10, TEXT);
-
-        // Кнопка включения
-        add(new Flat(x, y, w, 20, b -> { }, (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), w, 20, 3, hov ? CARD_HOVER : CARD_BG);
-            txt(g, "Включить", f.getX() + 8, f.getY() + 6, TEXT);
-        }));
-        y += 22;
-
-        // Keybind
-        txt(g, "Keybind", x, y, DIM_TEXT);
-        y += 12;
-        keybindField = new TextFieldWidget(textRenderer, x, y, w, 20, Text.literal("Keybind"));
-        keybindField.setMaxLength(16);
-        add(keybindField);
-    }
-
-    private void addCheckboxRow(int x, int y, int w, String label, BooleanSupplier get, Runnable flip) {
-        add(new Flat(x, y, w, 14, b -> flip.run(), (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), w, 14, 2, hov ? CARD_HOVER : CARD_BG);
-            drawCheckbox(g, f.getX() + 4, f.getY() + 2, get.getAsBoolean());
-            txt(g, fit(label, w - 24), f.getX() + 18, f.getY() + 3, TEXT);
-        }));
+        setH = (y - setY) + pad - 2;
     }
 
     private void toggleRow(int x, int y, int w, String label, BooleanSupplier get, Runnable flip) {
         add(new Flat(x, y, w, 20, b -> flip.run(), (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), w, 20, 3, hov ? CARD_HOVER : CARD_BG);
+            rr(g, f.getX(), f.getY(), w, 20, 3, hov ? ROW_HOVER : ROW);
             txt(g, fit(label, w - 44), f.getX() + 8, f.getY() + 6, TEXT);
-            boolean on = get.getAsBoolean();
-            rr(g, f.getX() + w - 26, f.getY() + 5, 20, 10, 5, on ? TOGGLE_ON : TOGGLE_OFF);
-            rr(g, on ? f.getX() + w - 15 : f.getX() + w - 24, f.getY() + 7, 6, 6, 3, WHITE);
+            pill(g, f.getX() + w - 30, f.getY() + 4, get.getAsBoolean());
         }));
     }
 
@@ -572,7 +423,7 @@ public class ClickGui extends Screen {
             listenBtn = b;
             listenSetter = set;
         }, (g, f, hov) -> {
-            rr(g, f.getX(), f.getY(), w, 20, 3, hov ? CARD_HOVER : CARD_BG);
+            rr(g, f.getX(), f.getY(), w, 20, 3, hov ? ROW_HOVER : ROW);
             int tx = f.getX() + 8;
             if (icon != null) {
                 g.drawItem(icon, f.getX() + 3, f.getY() + 2);
@@ -582,42 +433,38 @@ public class ClickGui extends Screen {
             String k = listening ? "..." : Keys.name(get.getAsInt());
             int bw = Math.max(30, tw(k) + 12);
             txt(g, fit(label, w - bw - 12 - (tx - f.getX())), tx, f.getY() + 6, TEXT);
-            rr(g, f.getX() + w - bw - 4, f.getY() + 3, bw, 14, 3, listening ? ACCENT : TOGGLE_OFF);
+            rr(g, f.getX() + w - bw - 4, f.getY() + 3, bw, 14, 3, listening ? ACCENT : OFF);
             txt(g, k, f.getX() + w - bw - 4 + (bw - tw(k)) / 2, f.getY() + 6, WHITE);
         }));
     }
 
-    // ───────────────────────── Отрисовка ─────────────────────────
+    private void note(int x, int y, int w, String text) {
+        add(new Flat(x, y, w, 12, b -> { }, (g, f, hov) -> txt(g, fit(text, w), f.getX() + 2, f.getY() + 2, DIMTEXT)));
+    }
+
+    // ───────────────────────── отрисовка экрана ─────────────────────────
 
     @Override
     public void render(DrawContext g, int mouseX, int mouseY, float delta) {
         g.fill(0, 0, width, height, DIM);
 
-        // Основная панель
-        border(g, mainX, mainY, mainW, mainH, 6, PANEL_BORDER);
-        rr(g, mainX + 1, mainY + 1, mainW - 2, 26, 5, HEADER_BG);
-        txt(g, "≡ " + selectedCategory.title, mainX + 8, mainY + 8, TEXT);
-        txt(g, "Misc", mainX + mainW - 40, mainY + 8, DIM_TEXT);
-
-        // Панель настроек
-        if (selectedMod != null) {
-            border(g, setX, setY, setW, setH, 6, PANEL_BORDER);
-            rr(g, setX + 1, setY + 1, setW - 2, 26, 5, HEADER_BG);
-            // Заголовок настройки рисуется в render() виджета, но проще тут
-            txt(g, "≡ " + selectedMod.title, setX + 8, setY + 8, TEXT);
+        if (showMain) {
+            panel(g, mainX, mainY, mainW, mainH);
+            txt(g, "FT Helper", mainX + 10, mainY + 10, TEXT);
+            String hint = "Click GUI [" + Keys.name(Config.get().guiKey) + "]";
+            txt(g, hint, mainX + mainW - 10 - tw(hint), mainY + 10, DIMTEXT);
         }
-
-        // Панель бота
-        border(g, botX, botY, botW, botH, 6, PANEL_BORDER);
-        rr(g, botX + 1, botY + 1, botW - 2, 26, 5, HEADER_BG);
-        txt(g, "≡ FightBot", botX + 8, botY + 8, TEXT);
+        if (showSettings && selected != null) {
+            panel(g, setX, setY, setW, setH);
+            txt(g, selected.title, setX + 10, setY + 10, TEXT);
+        }
 
         for (ClickableWidget w : widgets) w.render(g, mouseX, mouseY, delta);
 
         if (listenSetter != null) pollKey();
     }
 
-    // ───────────────────────── Назначение клавиш ─────────────────────────
+    // ───────────────────────── назначение клавиш ─────────────────────────
 
     private void pollKey() {
         long h = client.getWindow().getHandle();
@@ -628,7 +475,7 @@ public class ClickGui extends Screen {
             else finishListen(k);
             return;
         }
-        for (int b = 1; b <= 7; b++) {
+        for (int b = 1; b <= 7; b++) { // ЛКМ (0) пропускаем: им нажимали на кнопку
             if (GLFW.glfwGetMouseButton(h, b) == GLFW.GLFW_PRESS) {
                 finishListen(Config.MOUSE + b);
                 return;
