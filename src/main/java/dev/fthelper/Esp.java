@@ -8,8 +8,6 @@ import org.joml.Matrix3x2fStack;
 
 /** Стрелки вокруг прицела в сторону игроков. Показывают только расстояние. */
 public class Esp {
-    private static final int FRIEND_COLOR = 0xFF55FF55;
-
     public static void render(DrawContext ctx) {
         Config cfg = Config.get();
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -35,7 +33,7 @@ public class Esp {
             float px = cx + ax * cfg.espRadius;
             float py = cy + ay * cfg.espRadius;
 
-            int color = cfg.isFriend(p.getName().getString()) ? FRIEND_COLOR : cfg.espColorArgb();
+            int color = cfg.isFriend(p.getName().getString()) ? cfg.friendColorArgb() : cfg.espColorArgb();
 
             m.pushMatrix();
             m.translate(px, py);

@@ -49,11 +49,14 @@ public class Config {
     public int espRadius = 60;        // расстояние стрелок от прицела (px)
     public int espMaxDistance = 200;  // макс. дистанция до игрока (блоки)
     public String espColor = "#FF3030";
+    public String friendColor = "#55FF55";
 
     public int freecamKey = NONE;
     public double freecamSpeed = 1.0;
 
     public List<String> friends = new ArrayList<>();
+
+    public String theme = "Тёмная"; // Тёмная / Фиолетовая / Синяя / Красная / Моно
 
     private static Config inst;
     private static final Gson GSON = new GsonBuilder().setPrettyPrinting().create();
@@ -78,6 +81,8 @@ public class Config {
         if (inst.binds == null) inst.binds = new ArrayList<>();
         if (inst.friends == null) inst.friends = new ArrayList<>();
         if (inst.espColor == null) inst.espColor = "#FF3030";
+        if (inst.friendColor == null) inst.friendColor = "#55FF55";
+        if (inst.theme == null) inst.theme = "Тёмная";
         inst.invisAlpha = Math.max(30, Math.min(100, inst.invisAlpha));
         save();
     }
@@ -92,11 +97,19 @@ public class Config {
     }
 
     public int espColorArgb() {
+        return hexArgb(espColor, 0xFFFF3030);
+    }
+
+    public int friendColorArgb() {
+        return hexArgb(friendColor, 0xFF55FF55);
+    }
+
+    private static int hexArgb(String hex, int fallback) {
         try {
-            String s = espColor.startsWith("#") ? espColor.substring(1) : espColor;
+            String s = hex.startsWith("#") ? hex.substring(1) : hex;
             return 0xFF000000 | Integer.parseInt(s, 16);
         } catch (Exception e) {
-            return 0xFFFF3030;
+            return fallback;
         }
     }
 

@@ -21,21 +21,62 @@ import java.util.function.IntSupplier;
 
 /** Click GUI (открывается на J): карточки модулей слева, настройки выбранного модуля справа. */
 public class ClickGui extends Screen {
-    // палитра
+    // неизменная часть палитры (одинаковая для всех тем)
     private static final int DIM = 0xA0070810;
-    private static final int PANEL = 0xF00E1017;
     private static final int BORDER = 0x30FFFFFF;
-    private static final int CARD = 0xFF151822;
-    private static final int CARD_HOVER = 0xFF1B1F2C;
-    private static final int CARD_SEL = 0xFF1E2336;
     private static final int ROW = 0xFF141721;
     private static final int ROW_HOVER = 0xFF1A1E2B;
-    private static final int ACCENT = 0xFF7C86F0;
-    private static final int ACCENT_DIM = 0x667C86F0;
     private static final int TEXT = 0xFFEDEFFF;
     private static final int DIMTEXT = 0xFF7D8294;
     private static final int OFF = 0xFF2B2F3D;
     private static final int WHITE = 0xFFFFFFFF;
+
+    /** Тема меняет только фон панелей и акцентный цвет. */
+    private enum Theme {
+        DARK("Тёмная", 0xF00E1017, 0xFF7C86F0),
+        PURPLE("Фиолетовая", 0xF0140E1B, 0xFFA06CF0),
+        BLUE("Синяя", 0xF00B131D, 0xFF4FA3F0),
+        RED("Красная", 0xF01A0E0E, 0xFFF06161),
+        MONO("Моно", 0xF0101010, 0xFFBFBFBF);
+
+        final String title;
+        final int panel;
+        final int accent;
+
+        Theme(String title, int panel, int accent) {
+            this.title = title;
+            this.panel = panel;
+            this.accent = accent;
+        }
+
+        static Theme byTitle(String t) {
+            for (Theme v : values()) if (v.title.equals(t)) return v;
+            return DARK;
+        }
+    }
+
+    // пересчитываются из Config.theme в init()
+    private static int PANEL = Theme.DARK.panel;
+    private static int CARD, CARD_HOVER, CARD_SEL, ACCENT, ACCENT_DIM;
+
+    private static void applyTheme(Theme t) {
+        PANEL = t.panel;
+        ACCENT = t.accent;
+        ACCENT_DIM = (t.accent & 0x00FFFFFF) | 0x66000000;
+        CARD = mix(t.panel, 0xFF222733, 0.55f);
+        CARD_HOVER = mix(t.panel, 0xFF2A3040, 0.6f);
+        CARD_SEL = mix(t.panel, t.accent, 0.22f);
+    }
+
+    /** Смешивает два ARGB-цвета (a поверх b на долю t). */
+    private static int mix(int a, int b, float t) {
+        int ar = (a >> 16) & 0xFF, ag = (a >> 8) & 0xFF, ab = a & 0xFF;
+        int br = (b >> 16) & 0xFF, bg = (b >> 8) & 0xFF, bb = b & 0xFF;
+        int r = Math.round(ar + (br - ar) * t);
+        int g = Math.round(ag + (bg - ag) * t);
+        int bl = Math.round(ab + (bb - ab) * t);
+        return 0xFF000000 | (r << 16) | (g << 8) | bl;
+    }
 
     private enum Mod {
         BINDS("Бинды предметов", "Предмет по клавише"),
@@ -253,6 +294,7 @@ public class ClickGui extends Screen {
     protected void init() {
         widgets.clear();
         Config c = Config.get();
+        applyTheme(Theme.byTitle(c.theme));
 
         final int pad = 8, cardW = 140, cardH = 44, gap = 6, headerH = 28, rows = 3, panelGap = 10;
         mainW = pad * 2 + cardW * 2 + gap;
@@ -338,19 +380,8 @@ public class ClickGui extends Screen {
                 add(new SliderW(x, y, w, 28, "Макс. дистанция", () -> c.espMaxDistance,
                         v -> c.espMaxDistance = (int) Math.round(v), 10, 1000, 10, "%.0f")); y += 32;
 
-                // цвет: подпись, образец и поле HEX
-                add(new Flat(x, y, w - 94, 20, b -> { }, (g, f, hov) -> {
-                    rr(g, f.getX(), f.getY(), f.getWidth(), 20, 3, ROW);
-                    txt(g, "Цвет ESP", f.getX() + 8, f.getY() + 6, TEXT);
-                    rr(g, f.getX() + f.getWidth() - 20, f.getY() + 4, 12, 12, 3, Config.get().espColorArgb());
-                }));
-                TextFieldWidget color = new TextFieldWidget(textRenderer, x + w - 90, y, 90, 20, Text.literal("Цвет"));
-                color.setMaxLength(7);
-                color.setText(c.espColor);
-                color.setChangedListener(s -> c.espColor = s);
-                add(color);
-                y += 24;
-                note(x, y, w, "Друзья всегда зелёные"); y += 16;
+                y = colorRow(x, y, w, "Цвет ESP", c.espColor, s -> c.espColor = s, c::espColorArgb);
+                y = colorRow(x, y, w, "Цвет друга", c.friendColor, s -> c.friendColor = s, c::friendColorArgb);
             }
             case FREECAM -> {
                 keyRow(x, y, w, "Бинд Freecam", () -> c.freecamKey, v -> c.freecamKey = v, null); y += 22;
@@ -368,6 +399,26 @@ public class ClickGui extends Screen {
                 add(new SliderW(x, y, w, 28, "Высота над низом", () -> c.hudYOffset,
                         v -> c.hudYOffset = (int) Math.round(v), 40, 250, 5, "%.0f")); y += 32;
                 keyRow(x, y, w, "Клавиша Click GUI", () -> c.guiKey, v -> c.guiKey = v, null); y += 22;
+                y += 4;
+                note(x, y, w, "Тема"); y += 14;
+                Theme current = Theme.byTitle(c.theme);
+                int tcols = 3, tgap = 4, tcw = (w - (tcols - 1) * tgap) / tcols, tch = 20;
+                Theme[] all = Theme.values();
+                for (int i = 0; i < all.length; i++) {
+                    Theme t = all[i];
+                    int tx = x + (i % tcols) * (tcw + tgap);
+                    int ty = y + (i / tcols) * (tch + tgap);
+                    add(new Flat(tx, ty, tcw, tch, b -> {
+                        c.theme = t.title;
+                        Config.save();
+                        clearAndInit();
+                    }, (g, f, hov) -> {
+                        boolean sel = current == t;
+                        rr(g, f.getX(), f.getY(), tcw, tch, 3, sel ? t.accent : (hov ? ROW_HOVER : ROW));
+                        txt(g, fit(t.title, tcw - 8), f.getX() + 4, f.getY() + 6, sel ? WHITE : TEXT);
+                    }));
+                }
+                y += ((all.length + tcols - 1) / tcols) * (tch + tgap);
             }
             case FRIENDS -> {
                 TextFieldWidget field = new TextFieldWidget(textRenderer, x, y, w - 70, 20, Text.literal("Ник"));
@@ -436,6 +487,21 @@ public class ClickGui extends Screen {
             rr(g, f.getX() + w - bw - 4, f.getY() + 3, bw, 14, 3, listening ? ACCENT : OFF);
             txt(g, k, f.getX() + w - bw - 4 + (bw - tw(k)) / 2, f.getY() + 6, WHITE);
         }));
+    }
+
+    /** Строка "подпись + цветной квадрат + поле HEX". Возвращает y следующей строки. */
+    private int colorRow(int x, int y, int w, String label, String hex, java.util.function.Consumer<String> set, IntSupplier colorArgb) {
+        add(new Flat(x, y, w - 94, 20, b -> { }, (g, f, hov) -> {
+            rr(g, f.getX(), f.getY(), f.getWidth(), 20, 3, ROW);
+            txt(g, label, f.getX() + 8, f.getY() + 6, TEXT);
+            rr(g, f.getX() + f.getWidth() - 20, f.getY() + 4, 12, 12, 3, colorArgb.getAsInt());
+        }));
+        TextFieldWidget field = new TextFieldWidget(textRenderer, x + w - 90, y, 90, 20, Text.literal("Цвет"));
+        field.setMaxLength(7);
+        field.setText(hex);
+        field.setChangedListener(s -> { set.accept(s); Config.save(); });
+        add(field);
+        return y + 24;
     }
 
     private void note(int x, int y, int w, String text) {
