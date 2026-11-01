@@ -130,18 +130,27 @@ public class ClickGui extends Screen {
 
     // ───────────────────────── виджеты ─────────────────────────
 
-    /** Кнопка с собственной отрисовкой. */
+    /**
+     * Кнопка с собственной отрисовкой.
+     * В 1.21.11 ButtonWidget абстрактный, renderWidget у него final, а внутри есть свой класс Text,
+     * поэтому Text здесь пишем полным именем, фон гасим в drawButton, а рисуем в drawIcon.
+     */
     private class Flat extends ButtonWidget {
         private final Painter painter;
         int lastMouseX;
 
         Flat(int x, int y, int w, int h, PressAction action, Painter painter) {
-            super(x, y, w, h, Text.empty(), action, s -> s.get());
+            super(x, y, w, h, net.minecraft.text.Text.empty(), action, s -> s.get());
             this.painter = painter;
         }
 
         @Override
-        public void renderWidget(DrawContext g, int mouseX, int mouseY, float delta) {
+        public void drawButton(DrawContext g) {
+            // стандартный фон кнопки не нужен
+        }
+
+        @Override
+        public void drawIcon(DrawContext g, int mouseX, int mouseY, float delta) {
             lastMouseX = mouseX;
             painter.paint(g, this, isHovered());
         }
@@ -159,7 +168,7 @@ public class ClickGui extends Screen {
 
         SliderW(int x, int y, int w, int h, String label, DoubleSupplier get, DoubleConsumer set,
                 double min, double max, double step, String fmt) {
-            super(x, y, w, h, Text.empty(), b -> ((SliderW) b).begin(), s -> s.get());
+            super(x, y, w, h, net.minecraft.text.Text.empty(), b -> ((SliderW) b).begin(), s -> s.get());
             this.label = label;
             this.get = get;
             this.set = set;
@@ -186,7 +195,12 @@ public class ClickGui extends Screen {
         }
 
         @Override
-        public void renderWidget(DrawContext g, int mouseX, int mouseY, float delta) {
+        public void drawButton(DrawContext g) {
+            // стандартный фон кнопки не нужен
+        }
+
+        @Override
+        public void drawIcon(DrawContext g, int mouseX, int mouseY, float delta) {
             lastMouseX = mouseX;
             if (dragging) {
                 long h = MinecraftClient.getInstance().getWindow().getHandle();
