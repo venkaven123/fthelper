@@ -13,22 +13,26 @@ import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 /**
- * Бинд -> предмет меняется со слотом в руке (без открытия инвентаря) ->
- * через 200 мс один ПКМ -> (если включено returnItem) ещё через 200 мс
- * предмет возвращается на прежнее место.
- * Пока идёт вся последовательность, движение игрока останавливается (если freezeWhileUsing),
- * а сразу после неё продолжается, если клавиши всё ещё зажаты.
+ * Бинд -> игрок останавливается (если freezeWhileUsing) -> когда он реально замер,
+ * предмет меняется со слотом в руке (без открытия инвентаря) -> через 200 мс один ПКМ ->
+ * (если включено returnItem) ещё через 200 мс предмет возвращается на прежнее место.
+ * Сразу после последовательности движение продолжается, если клавиши всё ещё зажаты.
  */
 public class ItemBinds {
     private static final int DELAY_TICKS = 4; // 200 мс между действиями
 
-    // 0 ожидание, 1 ждём ПКМ, 2 ждём возврат
+    private static final int MIN_STOP_TICKS = 2;  // минимум тиков остановки перед обменом
+    private static final int MAX_STOP_TICKS = 14; // дольше не ждём, даже если игрок ещё скользит
+
+    // 0 ожидание, 1 ждём остановку игрока, 2 ждём ПКМ, 3 ждём возврат
     private static int state = 0;
     private static int timer;
+    private static int waited;
     private static int heldSlot;
     private static int returnSlot = -1; // слот окна инвентаря, откуда взяли предмет
     private static Item item = Items.AIR;
@@ -112,6 +116,21 @@ public class ItemBinds {
         if (mc.currentScreen != null) return; // пока открыто любое окно, ждём
 
         if (state == 1) {
+            // ждём, пока игрок остановится: сервер может не принять обмен слотов на бегу
+            waited++;
+            boolean stopped = !cfg.freezeWhileUsing
+                    || (waited >= MIN_STOP_TICKS && isStill(mc))
+                    || waited >= MAX_STOP_TICKS;
+            if (!stopped) return;
+
+            if (!swapIn(mc)) {
+                state = 0;
+                returnSlot = -1;
+                return;
+            }
+            state = 2;
+            timer = DELAY_TICKS;
+        } else if (state == 2) {
             if (--timer > 0) return;
 
             if (mc.player.getInventory().getSelectedSlot() == heldSlot && mc.interactionManager != null) {
@@ -123,15 +142,21 @@ public class ItemBinds {
             }
 
             if (cfg.returnItem && returnSlot != -1) {
-                state = 2;
+                state = 3;
                 timer = DELAY_TICKS;
             } else {
                 state = 0;
                 returnSlot = -1;
             }
-        } else if (state == 2) {
+        } else if (state == 3) {
             if (--timer <= 0) giveBack(mc);
         }
+    }
+
+    /** Игрок стоит на земле и почти не двигается. */
+    private static boolean isStill(MinecraftClient mc) {
+        Vec3d v = mc.player.getVelocity();
+        return Math.hypot(v.x, v.z) < 0.02 && mc.player.isOnGround();
     }
 
     private static void start(MinecraftClient mc, Config.ItemBind b) {
@@ -142,6 +167,14 @@ public class ItemBinds {
             return;
         }
         item = it;
+        returnSlot = -1;
+        waited = 0;
+        mc.player.setSprinting(false);
+        state = 1;
+    }
+
+    /** Меняет найденный предмет со слотом в руке. false, если предмета нет. */
+    private static boolean swapIn(MinecraftClient mc) {
         returnSlot = -1;
         heldSlot = mc.player.getInventory().getSelectedSlot();
 
@@ -159,15 +192,13 @@ public class ItemBinds {
         if (!alreadyHeld) {
             if (found == -1) {
                 setStatus("Нет предмета");
-                return;
+                return false;
             }
             // SWAP: меняем найденный слот со слотом хотбара (button = номер слота хотбара)
             mc.interactionManager.clickSlot(h.syncId, found, heldSlot, SlotActionType.SWAP, mc.player);
             returnSlot = found;
         }
-
-        state = 1;
-        timer = DELAY_TICKS;
+        return true;
     }
 
     /** Повторный SWAP тех же слотов возвращает всё как было. */

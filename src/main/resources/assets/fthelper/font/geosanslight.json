@@ -3,8 +3,16 @@
     {
       "type": "ttf",
       "file": "fthelper:geosanslight.ttf",
-      "size": 10.0,
-      "oversample": 4.0,
+      "size": 10.5,
+      "oversample": 8.0,
+      "shift": [0.0, 0.0],
+      "skip": ""
+    },
+    {
+      "type": "ttf",
+      "file": "fthelper:cyrillic.ttf",
+      "size": 11.0,
+      "oversample": 8.0,
       "shift": [0.0, 0.0],
       "skip": ""
     },
