@@ -371,7 +371,13 @@ public class ClickGui extends Screen {
                 y += 22;
                 toggleRow(x, y, w, "Возврат предмета", () -> c.returnItem,
                         () -> { c.returnItem = !c.returnItem; Config.save(); });
+                y += 26;
+                toggleRow(x, y, w, "Inventory Move", () -> c.invMove,
+                        () -> { c.invMove = !c.invMove; Config.save(); });
                 y += 22;
+                keyRow(x, y, w, "Бинд Inventory Move", () -> c.invMoveKey, v -> c.invMoveKey = v, null);
+                y += 22;
+                note(x, y, w, "Движение и ПКМ по инвентарю, пока открыт экран"); y += 16;
             }
             case ESP -> {
                 keyRow(x, y, w, "Бинд ESP", () -> c.espKey, v -> c.espKey = v, null); y += 22;

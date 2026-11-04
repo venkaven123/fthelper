@@ -40,6 +40,9 @@ public class Config {
     public boolean freezeWhileUsing = true; // останавливать движение, пока используется предмет
     public boolean returnItem = true; // после использования вернуть предмет на прежнее место
 
+    public boolean invMove = false; // двигаться/бегать и таскать предметы, пока открыт инвентарь
+    public int invMoveKey = NONE;
+
     public boolean seeInvisibles = false; // показывать невидимых игроков
     public int seeInvisKey = NONE;
     public int invisAlpha = 100; // видимость невидимых игроков, % (30..100)

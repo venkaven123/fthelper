@@ -10,8 +10,9 @@ public class FTHelper implements ClientModInitializer {
     public void onInitializeClient() {
         Config.load();
 
-        // ItemBinds раньше Freecam, чтобы Freecam всегда имел приоритет над клавишами
+        // ItemBinds и InventoryMove раньше Freecam, чтобы Freecam всегда имел приоритет над клавишами
         ClientTickEvents.START_CLIENT_TICK.register(ItemBinds::startTick);
+        ClientTickEvents.START_CLIENT_TICK.register(InventoryMove::startTick);
         ClientTickEvents.START_CLIENT_TICK.register(Freecam::startTick);
         ClientTickEvents.END_CLIENT_TICK.register(FTHelper::tick);
 
@@ -36,9 +37,12 @@ public class FTHelper implements ClientModInitializer {
         boolean esp = Keys.edge("esp", cfg.espKey);
         boolean fc = Keys.edge("freecam", cfg.freecamKey);
         boolean si = Keys.edge("seeinvis", cfg.seeInvisKey);
+        boolean im = Keys.edge("invmove", cfg.invMoveKey);
 
         ItemBinds.tick(mc);
         SeeInvisibles.tick(mc);
+
+        if (im) { cfg.invMove = !cfg.invMove; Config.save(); }
 
         if (mc.currentScreen == null) {
             if (gui) mc.setScreen(new ClickGui());

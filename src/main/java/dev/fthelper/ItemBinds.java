@@ -1,10 +1,6 @@
 package dev.fthelper;
 
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.option.KeyBinding;
-import net.minecraft.client.util.InputUtil;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -15,7 +11,6 @@ import net.minecraft.screen.slot.SlotActionType;
 import net.minecraft.util.Hand;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.Identifier;
-import org.lwjgl.glfw.GLFW;
 
 /**
  * Бинд -> игрок останавливается (если freezeWhileUsing) -> когда он реально замер,
@@ -64,22 +59,6 @@ public class ItemBinds {
         frozen = false;
     }
 
-    private static boolean down(KeyBinding kb) {
-        InputUtil.Key k = KeyBindingHelper.getBoundKeyOf(kb);
-        if (k.getCategory() != InputUtil.Type.KEYSYM) return false;
-        long h = MinecraftClient.getInstance().getWindow().getHandle();
-        return GLFW.glfwGetKey(h, k.getCode()) == GLFW.GLFW_PRESS;
-    }
-
-    private static void setMove(GameOptions o, boolean physical) {
-        o.forwardKey.setPressed(physical && down(o.forwardKey));
-        o.backKey.setPressed(physical && down(o.backKey));
-        o.leftKey.setPressed(physical && down(o.leftKey));
-        o.rightKey.setPressed(physical && down(o.rightKey));
-        o.jumpKey.setPressed(physical && down(o.jumpKey));
-        o.sprintKey.setPressed(physical && down(o.sprintKey));
-    }
-
     /**
      * Вызывается в начале тика (до чтения управления игроком): пока идёт использование,
      * обнуляем клавиши движения; когда закончили - возвращаем те, что всё ещё зажаты.
@@ -91,11 +70,11 @@ public class ItemBinds {
         }
         boolean want = state != 0 && Config.get().freezeWhileUsing;
         if (want) {
-            setMove(mc.options, false);
+            Keys.setMoveKeys(mc.options, false);
             frozen = true;
         } else if (frozen) {
             frozen = false;
-            if (mc.currentScreen == null) setMove(mc.options, true);
+            if (mc.currentScreen == null) Keys.setMoveKeys(mc.options, true);
         }
     }
 
