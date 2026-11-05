@@ -15,11 +15,13 @@ import net.minecraft.util.Identifier;
 /**
  * Бинд -> игрок останавливается (если freezeWhileUsing) -> когда он реально замер,
  * предмет меняется со слотом в руке (без открытия инвентаря) -> через 200 мс один ПКМ ->
- * (если включено returnItem) ещё через 200 мс предмет возвращается на прежнее место.
- * Сразу после последовательности движение продолжается, если клавиши всё ещё зажаты.
+ * (если включено returnItem) предмет ещё 400 мс держится в хотбаре и только потом
+ * возвращается на прежнее место. Сразу после последовательности движение продолжается,
+ * если клавиши всё ещё зажаты.
  */
 public class ItemBinds {
     private static final int DELAY_TICKS = 4; // 200 мс между действиями
+    private static final int POST_USE_HOLD_TICKS = DELAY_TICKS + 4; // ещё +200 мс держим предмет в хотбаре после использования
 
     private static final int MIN_STOP_TICKS = 2;  // минимум тиков остановки перед обменом
     private static final int MAX_STOP_TICKS = 14; // дольше не ждём, даже если игрок ещё скользит
@@ -122,7 +124,7 @@ public class ItemBinds {
 
             if (cfg.returnItem && returnSlot != -1) {
                 state = 3;
-                timer = DELAY_TICKS;
+                timer = POST_USE_HOLD_TICKS;
             } else {
                 state = 0;
                 returnSlot = -1;
